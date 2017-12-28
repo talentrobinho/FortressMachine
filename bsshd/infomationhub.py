@@ -1,4 +1,5 @@
 #!/usr/local/python279/bin/python
+#-*- coding: UTF-8 -*-
 
 import os
 import sys

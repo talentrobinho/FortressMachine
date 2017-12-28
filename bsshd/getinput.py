@@ -1,4 +1,5 @@
 #!/usr/bin/env /usr/local/python279/bin/python
+#-*- coding: UTF-8 -*-
 
 DoGSSAPIKeyExchange = True
 def wrap_with_line_feed(s, before=0, after=1):

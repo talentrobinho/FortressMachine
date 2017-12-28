@@ -12,6 +12,7 @@ function stop()
     if [ ! -s $pidfile ]
     then
         echo "$pidfile is not exist"
+        exit 1
     fi
     kill `cat $pidfile`
     rm -f $pidfile

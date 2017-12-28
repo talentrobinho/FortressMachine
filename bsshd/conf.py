@@ -1,3 +1,5 @@
+#!/usr/bin/env /usr/local/python279/bin/python
+#-*- coding: UTF-8 -*-
 import ConfigParser, os
 
 

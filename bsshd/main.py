@@ -1,4 +1,5 @@
 #!/usr/local/python279/bin/python
+#-*- coding: UTF-8 -*-
 
 import os
 import socket
@@ -44,16 +45,16 @@ class bsshd(object):
 
     @classmethod
     def _create_conn(cls, client, addr):
-    ''' 根据链接请求，创建链接
+        ''' 根据链接请求，创建链接
 
-        Args:
-            通过socket.accept()函数获得
-            client: 套接字对象
-            addr: 客户端地址
-        Returns:
-            无返回值，出错退出
+            Args:
+                通过socket.accept()函数获得
+                client: 套接字对象
+                addr: 客户端地址
+            Returns:
+                无返回值，出错退出
 
-    '''
+        '''
         try:
             #t = paramiko.Transport(client, gss_kex=DoGSSAPIKeyExchange)
             t = paramiko.Transport(client)

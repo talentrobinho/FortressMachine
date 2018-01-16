@@ -11,6 +11,7 @@ import paramiko
 import logging
 import daemon
 import time
+import re
 
 from signal import SIGTERM 
 from multiprocessing import Process
@@ -20,6 +21,7 @@ from globals import GlobalVar
 from server import Server
 from getinput import GetInput
 from infomationhub import InfoHub
+from checkmachine import CheckHost
 from conf import ReadConf
 from logger import CreateLogger
 
@@ -38,6 +40,7 @@ SetParamLog.param_log()
 log = logging.getLogger(os.path.basename(__file__))
 
 
+
 class bsshd(object):
     ''' ssh 服务端程序
     '''
@@ -53,7 +56,6 @@ class bsshd(object):
                 addr: 客户端地址
             Returns:
                 无返回值，出错退出
-
         '''
         try:
             #t = paramiko.Transport(client, gss_kex=DoGSSAPIKeyExchange)
@@ -103,24 +105,63 @@ class bsshd(object):
             chan.send(usage)
 
             
+            getdb = CheckHost(username)
+            passwd_count = 0
+            passwd_input = False
             while True:
                 passwd = None
+                search_content = None
                 gi = GetInput(chan, username)
                 cmd = gi.get_input()
                 if cmd.startswith('ssh'):
                     IH = InfoHub(chan)
-                    host = cmd.strip(' ').split(' ')[1]
+                    hostinfo = cmd.strip(' ').split(' ')[1]
+                    if hostinfo.find('@') >= 0:
+                        user = hostinfo.split('@')[0]
+                        host = hostinfo.split('@')[1]
+                    else:
+                        user = username
+                        host = hostinfo
+                    infotupl = getdb.check_user_by_ip(host)
+                    if infotupl:
+                        admin, userlist = infotupl[0]
+                        if int(admin.find(username)) >= 0:
+                            passwd_input = True
+                        elif int(userlist.find(username)) >= 0:
+                            passwd_input = True
+                        else:
+                            chan.send('\r\nWARNING: You are not allowed to log in. Please contact the administrator.')
+                            chan.send('\r\nADMIN: %s'%(admin,))
+                            continue
+                    else:
+                        chan.send('\r\nHost does not exist')
+                        continue
                     pw = GetInput(chan, username)
-                    passwd = pw.get_input("%s@%s's password: "%(username, host))
-                    if passwd:
-    
-                        if IH.info_hub(username, host):
-                        #if IH.info_hub('op_biz', host):
-                            chan.send('\r\n[ERROR] connected  %s fail.\r\n'%host)
-                            log.error('connected %s fail.'%host)
+                    while passwd_input:
+                        passwd = pw.get_input("%s@%s's password: "%(user, host))
+                        if passwd:
+                            if IH.info_hub(host=host, user=user, passwd=passwd):
+                                chan.send('\r\n[ERROR] Permission denied, please try again.'%host)
+                                log.error('Permission denied, please try again.[%s]'%host)
+                                passwd_count+=1
+                                
+                                if passwd_count > 2:
+                                    break
+                            else:
+                                break
                     
+                elif cmd.startswith('/'):
+                    search_content = cmd.split('/')[1]
+                    host_re = re.complie(r'^10\.1[3,4,5]\d\.((?:(2[0-4]\d)|(25[0-5])|([01]?\d\d?))\.)')
+                    domain_re = re.complie(r'^\w')
+                    if host_re.match(search_content):
+                        query_host(search_content, 0)
+                    elif domain_re.match(search_content):
+                        query_host(search_content, 1)
+
                 elif cmd in ['h', 'help']:
                     chan.send('\r\n%s'%usage)
+
                 elif cmd in ['q', 'Q']:
                     break
 
